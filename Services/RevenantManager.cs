@@ -8,6 +8,7 @@ using Revenants.Options;
 using Revenants.Properties;
 using ThunderRoad;
 using UnityEngine;
+using QualityLevel = ThunderRoad.QualityLevel;
 using Random = System.Random;
 
 namespace Revenants.Services;
@@ -35,6 +36,7 @@ public class RevenantManager
         _revenantLevelManager.AreaUnculled += RevenantLevelManagerOnAreaUnculled;
         //_revenantLevelManager.AreaUnHidden += RevenantLevelManagerOnAreaUnHidden;
         _revenantLevelManager.SubscribeToAreas();
+        NavMeshHelper.ClearCache();
         if (!Level.IsDungeon) return;
         if (!AreaManager.Instance) return;
         if (Level.current.gameObject.GetComponent<RevenantLevelSeedManager>() is RevenantLevelSeedManager seedManager && seedManager != null)
@@ -48,6 +50,7 @@ public class RevenantManager
         _revenantLevelManager.AreaUnculled -= RevenantLevelManagerOnAreaUnculled;
         //_revenantLevelManager.AreaUnHidden -= RevenantLevelManagerOnAreaUnHidden;
         _revenantLevelManager.UnsubscribeFromAreas();
+        NavMeshHelper.ClearCache();
         if (Level.current.gameObject.GetComponent<RevenantLevelSeedManager>() is RevenantLevelSeedManager seedManager && seedManager != null)
             seedManager.Release();
     }
@@ -175,12 +178,27 @@ public class RevenantManager
         int baseMax = ModOptions.MaxNumberOfRevenantsPerRoom;
         if (!Level.IsDungeon || !LevelLocationHelper.TryGetAreaBounds(areaId, out Bounds bounds))
             return (baseMin, baseMax);
-        const int samples = 250;
-        float reach = NavMeshHelper.GetNavMeshReachability(bounds, samples);
-        reach = Mathf.SmoothStep(0f, 1f, reach);
-        reach = Mathf.Pow(reach, 1.5f);
-        int min = Mathf.Max(1, Mathf.RoundToInt(baseMin * Mathf.Lerp(0.4f, 1.5f, reach)));
-        int max = Mathf.Max(min, Mathf.RoundToInt(baseMax * Mathf.Lerp(0.6f, 2.2f, reach)));
+        float walkableArea = NavMeshHelper.GetWalkableArea(areaId, bounds);
+        // 100m² = tiny room
+        // 50000m² = huge arena
+        float t;
+        const float areaThreshold = 1000f;
+        if (walkableArea < areaThreshold)
+        {
+            // Small rooms : very smooth and conservative
+            t = Mathf.InverseLerp(50f, areaThreshold, walkableArea);
+            t = Mathf.Pow(t, 1.5f) * 0.35f;
+        }
+        else
+        {
+            // Big areas : accelerate strongly
+            t = Mathf.InverseLerp(areaThreshold, 50000f, walkableArea);
+            t = 0.35f + Mathf.Pow(t, 0.5f) * 0.65f;
+        }
+        
+        int min = Mathf.Max(1, Mathf.RoundToInt(baseMin * Mathf.Lerp(1.0f, 4.0f, t)));
+        int max = Mathf.Max(min, Mathf.RoundToInt(baseMax * Mathf.Lerp(1.0f, 7.5f, t)));
+        max = Mathf.Min(max, QualityLevel.Android == Common.GetQualityLevel() ? 25 : 50);
         return (min, max);
     }
     
