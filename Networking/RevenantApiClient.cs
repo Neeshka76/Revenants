@@ -12,7 +12,7 @@ public static class RevenantApiClient
     //private const string BaseUrl = "https://localhost:7129/api/rev"; // BAD URL TO TEST NO CONNECTION
     //private const string BaseUrl = "https://localhost:7129/api/revenants";
     private const string BaseUrl = "https://app.neeshka-s-hoard.eu/api/revenants";
-
+    
     public static IEnumerator SendRevenant(RevenantData data, Action<bool> onDone = null)
     {
         JsonSerializerSettings settings = new JsonSerializerSettings
@@ -29,7 +29,7 @@ public static class RevenantApiClient
             GameMode = data.GameMode,
             DataJson = json
         };
-
+        
         string dtoJson = JsonConvert.SerializeObject(dto);
         //Snippet.DebugLog(dtoJson);
         // IMPORTANT: convert DTO -> RevenantData
@@ -46,46 +46,66 @@ public static class RevenantApiClient
             onDone?.Invoke(false);
             yield break;
         }
-
+        
         onDone?.Invoke(true);
         //else
         //{
         //    Snippet.DebugLog($"{req.responseCode} - {req.downloadHandler.text}", "lime");
         //}
     }
-
-    public static IEnumerator GetAllRevenants(Action<List<RevenantDto>> onDone)
+    
+    public static IEnumerator GetRandomRevenant(Action<SingleRevenantQueryResult> onDone)
     {
-        string url = BaseUrl + "/" + "all";
+        string url = BaseUrl + "/" + "random";
+        
         UnityWebRequest req = UnityWebRequest.Get(url);
         req.SetRequestHeader("PlayerName", ApiContext.PlayerName);
-
+        
         yield return req.SendWebRequest();
-
+        
         if (req.result != UnityWebRequest.Result.Success)
         {
-            Snippet.DebugLog($"{req.error}", "red", debugType: Snippet.DebugType.Error);
-            onDone?.Invoke(new List<RevenantDto>());
+            onDone?.Invoke(new SingleRevenantQueryResult
+            {
+                Success = false
+            });
             yield break;
         }
-
-        List<RevenantDto> result = null;
-
+        
         try
         {
-            result = JsonConvert.DeserializeObject<List<RevenantDto>>(req.downloadHandler.text);
+            RevenantDto result =
+                JsonConvert.DeserializeObject<RevenantDto>(req.downloadHandler.text);
+            
+            if (result == null)
+            {
+                onDone?.Invoke(new SingleRevenantQueryResult
+                {
+                    Success = false
+                });
+                yield break;
+            }
+            
+            onDone?.Invoke(new SingleRevenantQueryResult
+            {
+                Success = true,
+                Revenant = result
+            });
         }
         catch (Exception e)
         {
-            Snippet.DebugLog($"DTO list deserialize failed: {e}", debugType: Snippet.DebugType.Error);
+            Snippet.DebugLog($"DTO deserialize failed: {e}", debugType: Snippet.DebugType.Error);
+            
+            onDone?.Invoke(new SingleRevenantQueryResult
+            {
+                Success = false
+            });
         }
-
-        onDone?.Invoke(result ?? new List<RevenantDto>());
     }
-
-    public static IEnumerator GetRevenants(string levelId, Action<RevenantQueryResult> onDone)
+    
+    public static IEnumerator GetRevenants(string levelId, int count, Action<RevenantQueryResult> onDone)
     {
-        string url = BaseUrl + "/" + levelId;
+        string url = BaseUrl + "/" + levelId + "?count=" + count;
         UnityWebRequest req = UnityWebRequest.Get(url);
         // Send player id from header to the server
         req.SetRequestHeader("PlayerName", ApiContext.PlayerName);
@@ -100,10 +120,10 @@ public static class RevenantApiClient
             });
             yield break;
         }
-
+        
         //Snippet.DebugLog($"RAW RESPONSE: {json}");
         List<RevenantDto> result = null;
-
+        
         try
         {
             result = JsonConvert.DeserializeObject<List<RevenantDto>>(req.downloadHandler.text);
@@ -112,11 +132,40 @@ public static class RevenantApiClient
         {
             Snippet.DebugLog($"DTO list deserialize failed: {e}", debugType: Snippet.DebugType.Error);
         }
-
+        
         onDone?.Invoke(new RevenantQueryResult
         {
             Success = true,
             Revenants = result ?? new List<RevenantDto>()
         });
+    }
+    
+    public static IEnumerator GetAllRevenants(Action<List<RevenantDto>> onDone)
+    {
+        string url = BaseUrl + "/" + "all";
+        UnityWebRequest req = UnityWebRequest.Get(url);
+        req.SetRequestHeader("PlayerName", ApiContext.PlayerName);
+        
+        yield return req.SendWebRequest();
+        
+        if (req.result != UnityWebRequest.Result.Success)
+        {
+            Snippet.DebugLog($"{req.error}", "red", debugType: Snippet.DebugType.Error);
+            onDone?.Invoke(new List<RevenantDto>());
+            yield break;
+        }
+        
+        List<RevenantDto> result = null;
+        
+        try
+        {
+            result = JsonConvert.DeserializeObject<List<RevenantDto>>(req.downloadHandler.text);
+        }
+        catch (Exception e)
+        {
+            Snippet.DebugLog($"DTO list deserialize failed: {e}", debugType: Snippet.DebugType.Error);
+        }
+        
+        onDone?.Invoke(result ?? new List<RevenantDto>());
     }
 }

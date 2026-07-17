@@ -248,8 +248,11 @@ public class RevenantManager
     
     private void LoadAreaFromServer(string areaId)
     {
+        // Pick random subset
+        (int min, int max) = GetSpawnRange(areaId);
+        int count = UnityEngine.Random.Range(min, max + 1);
         GameManager.local.StartCoroutine(
-            RevenantApiClient.GetRevenants(areaId, (result) =>
+            RevenantApiClient.GetRevenants(areaId, count, (result) =>
             {
                 if (!result.Success)
                 {
@@ -282,20 +285,28 @@ public class RevenantManager
                     Snippet.DebugLog($"No valid revenant data for: {areaId}", "red");
                     return;
                 }
+                Snippet.DebugLog($"Spawning {dataList.Count} revenants for {areaId}", "cyan");
                 
-                // Pick random subset
-                (int min, int max) = GetSpawnRange(areaId);
-                
-                List<RevenantData> selected = PickRandomSubset(
-                    dataList,
-                    min,
-                    max
-                );
-                Snippet.DebugLog($"Spawning {selected.Count} revenants for {areaId}", "cyan");
-                
-                SpawnRevenants(selected);
+                SpawnRevenants(dataList);
             })
         );
+    }
+    
+    public void SpawnRandomRevenant(Vector3 position)
+    {
+        GameManager.local.StartCoroutine(
+            RevenantApiClient.GetRandomRevenant(result =>
+            {
+                if (!result.Success)
+                    return;
+                
+                RevenantData data = Deserialize(result.Revenant);
+                
+                if (data == null)
+                    return;
+                
+                _revenantSpawner.SpawnRevenant(data, position);
+            }));
     }
     
     private void SpawnRevenants(IEnumerable<RevenantData> data)

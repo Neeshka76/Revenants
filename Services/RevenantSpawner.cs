@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Revenants.API;
 using Revenants.Helpers;
 using Revenants.NPC;
 using Revenants.Options;
@@ -16,7 +17,7 @@ public class RevenantSpawner
     private readonly HolderManager _holderManager = new HolderManager();
     private readonly WardRobeManager _wardRobeManager = new WardRobeManager();
     
-    public void SpawnRevenant(RevenantData data)
+    public void SpawnRevenant(RevenantData data, Vector3? overridePosition = null)
     {
         Creature playerCr = Player.local.creature;
         CreatureData creatureData = Catalog.GetData<CreatureData>(data.CreatureId).Clone() as CreatureData;
@@ -26,7 +27,7 @@ public class RevenantSpawner
         creatureData.factionId = 3;
         creatureData.brainId = "HumanHard";
         creatureData.ethnicityId = data.EthnicityId;
-        Vector3 location = LevelLocationHelper.LocationInWorld(data.LevelIdOfDeath,
+        Vector3 location = overridePosition ?? LevelLocationHelper.LocationInWorld(data.LevelIdOfDeath,
             new Vector3(data.PositionOfDeathX, data.PositionOfDeathY, data.PositionOfDeathZ));
         GameManager.local.StartCoroutine(creatureData.SpawnCoroutine(location,
             Random.Range(0f, 359f), null, cr => { GameManager.local.StartCoroutine(IESpawnRevenant(data, cr)); },
@@ -190,6 +191,7 @@ public class RevenantSpawner
         }
         
         SkillManager skillManager = new SkillManager(cr);
+        RevenantApi.RaiseRevenantSpawned(cr);
         //TimeManager.Pause(true);
     }
 }

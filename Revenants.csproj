@@ -453,12 +453,14 @@
         <Compile Include="Networking\RevenantApiClient.cs" />
         <Compile Include="Networking\RevenantDto.cs" />
         <Compile Include="Networking\RevenantQueryResult.cs" />
+        <Compile Include="Networking\SingleRevenantQueryResult.cs" />
         <Compile Include="NPC\FactionBehaviour.cs" />
         <Compile Include="NPC\SeconWindNPCBehaviour.cs" />
         <Compile Include="NPC\SkillGravityDecapitateNPC.cs" />
         <Compile Include="NPC\SkillSecondWindNPC.cs" />
         <Compile Include="Options\ModOptions.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
+        <Compile Include="RevenantApi.cs" />
         <Compile Include="Save_Load.cs" />
         <Compile Include="Services\HolderManager.cs" />
         <Compile Include="Services\InventorySnapshot.cs" />

@@ -4,6 +4,9 @@ using Revenants.Properties;
 using Revenants.Services;
 using ThunderRoad;
 using Oculus.Platform;
+using Revenants.API;
+using UnityEngine;
+using QualityLevel = ThunderRoad.QualityLevel;
 
 namespace Revenants;
 
@@ -94,6 +97,7 @@ public class EntryPoint : ThunderScript
             Snippet.DebugLog($"Getting username from save, username found : {_revenantPlayerSave.Name}", "lime");
         }
         Snippet.DebugLog($"PlayerName : {ApiContext.PlayerName}", "cyan");
+        RevenantApi.RevenantManager = _revenantManager;
     }
     
     public static void Debug_AreaTestLevel(string id)
@@ -187,6 +191,7 @@ public class EntryPoint : ThunderScript
         DebugLogConsole.RemoveCommand("revenants.databasetojson");
         DebugLogConsole.RemoveCommand("revenants.jsontodatabase");
         DebugLogConsole.RemoveCommand("revenants.currentlevelid");
+        RevenantApi.RevenantManager = null;
     }
     
     public void SaveDataConsole()
@@ -220,6 +225,11 @@ public class EntryPoint : ThunderScript
         Snippet.DebugLog($"Loading data to the server", "yellow");
         _revenantManager.LoadData();
         Snippet.DebugLog($"Loaded data to the server", "green");
+    }
+    
+    public void SpawnRandomRevenant(Vector3 position)
+    {
+        _revenantManager.SpawnRandomRevenant(position);
     }
     
     //public void SpawnClone()
